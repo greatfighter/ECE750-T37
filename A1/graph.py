@@ -16,7 +16,7 @@ def plot_graph(data):
 
     for entry in data['data']:
         timestamp = datetime.datetime.fromtimestamp(entry['t'])
-        time_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        time_str = timestamp.strftime('%H:%M:%S')
         
         if time_str not in metrics:
             metrics[time_str] = {}
@@ -29,17 +29,18 @@ def plot_graph(data):
         
         metrics[time_str][service_name] += value
     
+    sorted_times = sorted(metrics)
     # Plot
     plt.figure(figsize=(14, 8))
 
     for service in set(service for subdict in metrics.values() for service in subdict):
-        service_data = [metrics[time].get(service, 0) for time in sorted(metrics)]
+        service_data = [metrics[time].get(service, 0) for time in sorted_times]
         plt.plot(sorted(metrics), service_data, label=service)
     
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.title('Service Metrics Over Time')
-    plt.xticks(rotation=45)
+    plt.xticks(ticks=range(0, len(sorted_times), 3), labels=[sorted_times[i] for i in range(0, len(sorted_times), 3)], rotation=45, fontsize=8)
     plt.legend()
     plt.tight_layout()
 
@@ -47,7 +48,7 @@ def plot_graph(data):
 
 # Main function
 def main():
-    file_path = '/Users/spencer/Desktop/Waterloo/class materials/ECE750-T37/A1/Drivers/datasets/cpu_used_percent_avg_metric.json'  
+    file_path = 'datasets/jvm_heap_used_avg_metric.json'  
     data = load_data(file_path)
     plot_graph(data)
 
