@@ -77,9 +77,9 @@ class Analyzer:
         # Set relative weights for each metric
         self.weight_cpu = 0.2      # CPU usage weight
         self.weight_memory = 0.2   # Memory usage weight
-        self.weight_latency = 0.45 # Latency weight
-        self.weight_tps = 0.15     # Transactions per second (TPS) weight
-        self.weight_gc_time = 0.15 # GC time weight
+        self.weight_latency = 0.2 # Latency weight
+        self.weight_tps = 0.2     # Transactions per second (TPS) weight
+        self.weight_gc_time = 0.2 # GC time weight
         
         # Add weight for cost (CPU, memory, pod cost)
         self.weight_cost = 0.1     # Cost weight (initialized)
@@ -91,58 +91,38 @@ class Analyzer:
         # Check whether adaptation is needed based on CPU, memory, and latency values
         current_time = datetime.now().strftime('%H:%M:%S')
         print(f"Time: {current_time}, CPU: {cpu:.2f}%, Memory: {memory:.2f}%, Latency: {latency:.2f}ms, TPS: {tps:.2f}, GC Time: {gc_time:.2f}ms")
-        if cpu > 80 or memory > 80 or latency > 1000 or tps < 50 or gc_time > 500:
+        if cpu > 80 or memory > 80 or latency > 1e9 or gc_time > 500:
             return True
         else:
             return False
     
+    def utility_preference_linear(self, value, min_value, max_value):
+        # Clamp the value to ensure it's within the expected range, normalize the value between 0 and 1
+        value = max(min(value, max_value), min_value)
+        return 1 - (value - min_value) / (max_value - min_value)
+    
     def utility_preference_cpu(self, cpu):
-        # Determine the utility preference for CPU usage
-        if cpu < 25:
-            return 1
-        elif cpu < 50:
-            return 0.5
-        else:
-            return 0
+        # CPU usage ranges from 0% (best) to 100% (worst)
+        return self.utility_preference_linear(cpu, 0, 100)
 
     def utility_preference_memory(self, memory):
-        # Determine the utility preference for memory usage
-        if memory < 25:
-            return 1
-        elif memory < 50:
-            return 0.5
-        else:
-            return 0
+        # Memory usage ranges from 0% (best) to 100% (worst)
+        return self.utility_preference_linear(memory, 0, 100)
     
     def utility_preference_latency(self, latency):
-        # Determine the utility preference for latency
-        if latency < 1e7:
-            return 1
-        elif latency < 2e7:
-            return 0.5
-        else:
-            return 0
-    
+        # Assume latency ranges from 0ms (best) to 2e9ms (worst)
+        return self.utility_preference_linear(latency, 0, 2e9)
+
     def utility_preference_tps(self, tps):
-        # Determine the utility preference for TPS
-        if tps > 100:
-            return 1
-        elif tps > 50:
-            return 0.5
-        else:
-            return 0
+        # Assume a higher TPS is better, 100 TPS is optimal, and 50 TPS is poor
+        return self.utility_preference_linear(tps, 50, 100)
 
     def utility_preference_gc_time(self, gc_time):
-        # Determine the utility preference for GC
-        if gc_time < 200:
-            return 1
-        elif gc_time < 500:
-            return 0.5
-        else:
-            return 0
+        # Assume GC time should be minimized; 0ms (best) to 500ms (worst)
+        return self.utility_preference_linear(gc_time, 0, 500)
 
     def utility_preference_cost(self, cost):
-        # Determine the utility preference for cost (cpu, memory, pod)
+        # Determine the utility preference for cost (cpu, memory)
         if cost == "cpu" or cost == "memory":
             return 1
         else:
@@ -248,6 +228,8 @@ class Analyzer:
         
         # Select the strategy with the highest utility value
         best_strategy = max(utilities, key=utilities.get)
+        # for strategy, utility in utilities.items():
+        #     print(f"{strategy}: {utility}")
         print(f"Best strategy: {best_strategy}")
 
 
