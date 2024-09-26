@@ -30,7 +30,7 @@ class Monitor:
         self.START = -SLEEP
         self.END = 0
         self.SAMPLING = 10
-        self.FILTER = None #'kubernetes.namespace.name="acmeair-g4"'
+        self.FILTER = 'kube_namespace_name="group-4"' #'kubernetes.namespace.name="group-4"'
     
     # Function to fetch data from IBM Cloud
     def fetch_data_from_ibm(self, id, aggregation):
@@ -173,16 +173,31 @@ class Analyzer:
 
     def process_data(self):
         # process data from json files
-        outputs = [[0]*len(self.metrics) for i in range(5)]
+        service_to_index = {service: idx for idx, service in enumerate(SERVICE_TO_USE)}
+    
+        # Initialize outputs with the same length as SERVICE_TO_USE and metrics
+        outputs = [[0] * len(self.metrics) for _ in range(len(SERVICE_TO_USE))]
+
         for idx, (metric_id, aggregation) in enumerate(self.metrics):
             filename = "datasets/" + metric_id.replace('.', '_') + "_" + aggregation + "_metric.json"
             df = self.create_dataframe(filename)
-            print (metric_id)
-            print (df)
-            aggregationData = df.groupby('service')      
+            
+            # Print the metric_id and original dataframe for debugging
+            print(metric_id)
+            print(df)
+            
+            # Filter the dataframe to only include services in SERVICE_TO_USE
+            df_filtered = df[df['service'].isin(SERVICE_TO_USE)]
+            
+            # Group the filtered dataframe by 'service'
+            aggregationData = df_filtered.groupby('service')
             avg_values = aggregationData['value'].mean()
-            for i in range(5):
-                outputs[i][idx] = avg_values.iloc[i]
+
+            # Map the average values back to the correct index in outputs
+            for service, avg_value in avg_values.items():
+                if service in service_to_index:
+                    index = service_to_index[service]
+                    outputs[index][idx] = avg_value
         exit(1)
 
         for i in range(5):
@@ -192,7 +207,7 @@ class Analyzer:
             tps = outputs[i][3]
             gc_time = outputs[i][4]
             print ("##########################")
-            print (self.metrics[i])
+            print(f"Service: {SERVICE_TO_USE[i]}")  # Print the current service name
             adaptation = self.triggerAdaptation(cpu, memory, latency, tps, gc_time)
             # if adaptation:
             #     print(f"{self.services[i]} requires adaptation")
