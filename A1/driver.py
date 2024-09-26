@@ -30,7 +30,7 @@ class Monitor:
         self.START = -SLEEP
         self.END = 0
         self.SAMPLING = 10
-        self.FILTER = 'kube_namespace_name="group-4"' #'kubernetes.namespace.name="group-4"'
+        self.FILTER = 'kube_namespace_name="group-4"' # None
     
     # Function to fetch data from IBM Cloud
     def fetch_data_from_ibm(self, id, aggregation):
@@ -183,8 +183,8 @@ class Analyzer:
             df = self.create_dataframe(filename)
             
             # Print the metric_id and original dataframe for debugging
-            print(metric_id)
-            print(df)
+            # print(metric_id)
+            # print(df)
             
             # Filter the dataframe to only include services in SERVICE_TO_USE
             df_filtered = df[df['service'].isin(SERVICE_TO_USE)]
@@ -198,7 +198,7 @@ class Analyzer:
                 if service in service_to_index:
                     index = service_to_index[service]
                     outputs[index][idx] = avg_value
-        exit(1)
+        # exit(1)
 
         for i in range(5):
             cpu = outputs[i][0]
@@ -209,11 +209,11 @@ class Analyzer:
             print ("##########################")
             print(f"Service: {SERVICE_TO_USE[i]}")  # Print the current service name
             adaptation = self.triggerAdaptation(cpu, memory, latency, tps, gc_time)
-            # if adaptation:
-            #     print(f"{self.services[i]} requires adaptation")
-            #     self.find_best_strategy(outputs[i])
-            # else:
-            #     print(f"No adaptation required for {self.services[i]}")
+            if adaptation:
+                print(f"{self.services[i]} requires adaptation")
+                self.find_best_strategy(outputs[i])
+            else:
+                print(f"No adaptation required for {self.services[i]}")
 
     def find_best_strategy(self, output):
         cpu = output[0]

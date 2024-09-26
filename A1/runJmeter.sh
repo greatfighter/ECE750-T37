@@ -14,21 +14,21 @@ case $LOAD_LEVEL in
   "low")
     THREAD=10
     USER=100
-    DURATION=300
+    DURATION=60
     RAMP=60
     DELAY=30
     ;;
   "medium")
-    THREAD=50
-    USER=500
-    DURATION=300
-    RAMP=30
-    DELAY=10
+    THREAD=300
+    USER=3500
+    DURATION=60
+    RAMP=15
+    DELAY=2
     ;;
   "high")
-    THREAD=200
-    USER=2000
-    DURATION=300
+    THREAD=600
+    USER=8000
+    DURATION=120
     RAMP=10
     DELAY=1
     ;;
