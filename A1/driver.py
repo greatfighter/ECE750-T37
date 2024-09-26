@@ -3,8 +3,21 @@ import sys
 import json
 import time
 import pandas as pd
-import heapq
 from sdcclient import IbmAuthHelper, SdMonitorClient
+from datetime import datetime
+
+SLEEP = 60
+SERVICE_TO_USE = [
+    'acmeair-mainservice',
+    'acmeair-authservice',
+    'acmeair-flightservice',
+    'acmeair-customerservice',
+    'acmeair-bookingservice'
+]
+
+def bytes_to_mb(bytes_value):
+    mb_value = bytes_value / (1024 * 1024)
+    return mb_value
 
 class Monitor:
     def __init__(self, url, api_key, guid):
@@ -14,13 +27,13 @@ class Monitor:
 
         # Sysdig Data API Query Parameters
         # Pull the latest 5 minutes of data
-        self.START = -300
+        self.START = -SLEEP
         self.END = 0
         self.SAMPLING = 10
         self.FILTER = None #'kubernetes.namespace.name="acmeair-g4"'
     
     # Function to fetch data from IBM Cloud
-    def fetch_data_from_ibm_monitor(self, id, aggregation):
+    def fetch_data_from_ibm(self, id, aggregation):
         # Specify the metric to query
         metric = [
             # segmentation metric
@@ -76,7 +89,8 @@ class Analyzer:
 
     def triggerAdaptation(self, cpu, memory, latency, tps, gc_time):
         # Check whether adaptation is needed based on CPU, memory, and latency values
-        print(f"CPU: {cpu:.2f}%, Memory: {memory:.2f}%, Latency: {latency:.2f}ms, TPS: {tps:.2f}, GC Time: {gc_time:.2f}ms")
+        current_time = datetime.now().strftime('%H:%M:%S')
+        print(f"Time: {current_time}, CPU: {cpu:.2f}%, Memory: {memory:.2f}%, Latency: {latency:.2f}ms, TPS: {tps:.2f}, GC Time: {gc_time:.2f}ms")
         if cpu > 80 or memory > 80 or latency > 1000 or tps < 50 or gc_time > 500:
             return True
         else:
@@ -158,29 +172,33 @@ class Analyzer:
         return pd.DataFrame(new_data)
 
     def process_data(self):
-        # perform data preprocessing and check whether adaptation is required
+        # process data from json files
         outputs = [[0]*len(self.metrics) for i in range(5)]
         for idx, (metric_id, aggregation) in enumerate(self.metrics):
             filename = "datasets/" + metric_id.replace('.', '_') + "_" + aggregation + "_metric.json"
             df = self.create_dataframe(filename)
-            aggregationData = df.groupby('service')
+            print (metric_id)
+            print (df)
+            aggregationData = df.groupby('service')      
             avg_values = aggregationData['value'].mean()
             for i in range(5):
                 outputs[i][idx] = avg_values.iloc[i]
+        exit(1)
 
-        # for each service, determine whether adaptation is needed
         for i in range(5):
             cpu = outputs[i][0]
             memory = outputs[i][1]
             latency = outputs[i][2]
             tps = outputs[i][3]
             gc_time = outputs[i][4]
+            print ("##########################")
+            print (self.metrics[i])
             adaptation = self.triggerAdaptation(cpu, memory, latency, tps, gc_time)
-            if adaptation:
-                print(f"{self.services[i]} requires adaptation")
-                self.find_best_strategy(outputs[i])
-            else:
-                print(f"No adaptation required for {self.services[i]}")
+            # if adaptation:
+            #     print(f"{self.services[i]} requires adaptation")
+            #     self.find_best_strategy(outputs[i])
+            # else:
+            #     print(f"No adaptation required for {self.services[i]}")
 
     def find_best_strategy(self, output):
         cpu = output[0]
@@ -226,8 +244,8 @@ def main():
 
     # metrices: time aggregation is average
     avg_metric_ids = [
-        "cpu.used.percent",          
-        "memory.used.percent",       
+        "cpu.quota.used.percent",          
+        "memory.limit.used.percent",       
         "jvm.gc.global.time"         
     ]
 
@@ -243,8 +261,8 @@ def main():
 
     # metrices: core metrics used to perform adaptation analysis
     core_metrics = [
-        ("cpu.used.percent", "avg"),
-        ("memory.used.percent", "avg"),
+        ("cpu.quota.used.percent", "avg"),
+        ("memory.limit.used.percent", "avg"),
         ("net.http.request.time", "max"),
         ("net.request.count.in", "sum"),
         ("jvm.gc.global.time", "avg")
@@ -254,19 +272,19 @@ def main():
     analyzer = Analyzer(core_metrics)
 
     while True:
-        # Fetch data from IBM Cloud
+        # Fetch data from IBM
         for id in avg_metric_ids:
-            monitor.fetch_data_from_ibm_monitor(id, "avg")
+            monitor.fetch_data_from_ibm(id, "avg")
 
         for id in sum_metric_ids:
-            monitor.fetch_data_from_ibm_monitor(id, "sum")
+            monitor.fetch_data_from_ibm(id, "sum")
 
         for id in max_metric_ids:
-            monitor.fetch_data_from_ibm_monitor(id, "max")
+            monitor.fetch_data_from_ibm(id, "max")
         print(f"Pulling metrics from IBM Cloud")
         analyzer.process_data()
         # Sleep for 5 minutes (300 seconds)
-        time.sleep(300)
+        time.sleep(SLEEP)
 
 if __name__ == "__main__":
     main()

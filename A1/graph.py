@@ -14,6 +14,15 @@ def plot_graph(data):
     times = []
     metrics = {}
 
+    # Define the services to plot (from the image you provided)
+    services_to_plot = [
+        'acmeair-mainservice',
+        'acmeair-authservice',
+        'acmeair-flightservice',
+        'acmeair-customerservice',
+        'acmeair-bookingservice'
+    ]
+
     for entry in data['data']:
         timestamp = datetime.datetime.fromtimestamp(entry['t'])
         time_str = timestamp.strftime('%H:%M:%S')
@@ -24,16 +33,16 @@ def plot_graph(data):
         service_name = entry['d'][0] if entry['d'][0] else 'Unknown'
         value = entry['d'][1]
         
-        if service_name not in metrics[time_str]:
-            metrics[time_str][service_name] = 0
-        
-        metrics[time_str][service_name] += value
+        if service_name in services_to_plot:
+            if service_name not in metrics[time_str]:
+                metrics[time_str][service_name] = 0
+            metrics[time_str][service_name] += value
     
     sorted_times = sorted(metrics)
     # Plot
     plt.figure(figsize=(14, 8))
 
-    for service in set(service for subdict in metrics.values() for service in subdict):
+    for service in services_to_plot:
         service_data = [metrics[time].get(service, 0) for time in sorted_times]
         plt.plot(sorted(metrics), service_data, label=service)
     
@@ -48,7 +57,7 @@ def plot_graph(data):
 
 # Main function
 def main():
-    file_path = 'datasets/jvm_heap_used_avg_metric.json'  
+    file_path = 'datasets/memory_used_percent_avg_metric.json'  
     data = load_data(file_path)
     plot_graph(data)
 
