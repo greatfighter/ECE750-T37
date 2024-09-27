@@ -7,7 +7,6 @@ fi
 HOST=$(oc get route acmeair-main-route -n group-${GROUP} --template='{{ .spec.host }}')
 PORT=80
 
-# 根据传入的负载级别设置参数
 LOAD_LEVEL=$1
 
 case $LOAD_LEVEL in
