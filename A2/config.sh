@@ -67,8 +67,8 @@ for file in "${files[@]}"; do
   service_=$(echo $file | grep -oE "acmeair-.*?service" | head -1)
   # echo $service_
   if [ "$service" == "" ] || [ "$service" == "$service_" ]; then
-    sed -i'' -e "s/cpu: .*m/cpu: ${cpu}m/g" $file
-    sed -i'' -e "s/memory: .*Mi/memory: ${memory}Mi/g" $file
+    sed -i'' -e "s/cpu: \".*m\"/cpu: \"${cpu}m\"/g" $file
+    sed -i'' -e "s/memory: \".*Mi\"/memory: \"${memory}Mi\"/g" $file
     sed -i'' -e "s/replicas: [0-9]*/replicas: ${replica}/g" $file
     echo $service_
     oc apply -f $file
