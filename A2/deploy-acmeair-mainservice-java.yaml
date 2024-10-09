@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: acmeair-mainservice-java
-        image: acmeair-mainservice-java:latest
+        image: image-registry.openshift-image-registry.svc:5000/group-4/acmeair-mainservice-java:latest
         ports:
         - containerPort: 9080
         - containerPort: 9443
