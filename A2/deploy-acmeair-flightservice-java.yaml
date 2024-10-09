@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: acmeair-flightservice-java
-        image: acmeair-flightservice-java:latest
+        image: image-registry.openshift-image-registry.svc:5000/group-4/acmeair-customerservice-java:latest
         ports:
           - containerPort: 9080
           - containerPort: 9443
@@ -129,7 +129,7 @@ spec:
         - name: acmeair-flight-db-2
           emptyDir: {}
       containers:
-      - image: docker.io/library/mongo:latest
+      - image: image-registry.openshift-image-registry.svc:5000/group-4/mongo:latest
         name: acmeair-flight-db
         ports:
         - containerPort: 27017
