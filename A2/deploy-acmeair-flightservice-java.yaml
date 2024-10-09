@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: acmeair-flightservice
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       name: acmeair-flight-deployment
@@ -17,14 +17,7 @@ spec:
     spec:
       containers:
       - name: acmeair-flightservice-java
-        image: image-registry.openshift-image-registry.svc:5000/acmeair-g13/acmeair-flightservice-java:latest
-        resources:
-          requests:
-            cpu: 500m
-            memory: 512Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
+        image: acmeair-flightservice-java:latest
         ports:
           - containerPort: 9080
           - containerPort: 9443
@@ -48,6 +41,13 @@ spec:
           value: '*=info'
         - name: LOGGING_FORMAT
           value: 'simple'
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
         readinessProbe:
           httpGet:
             path: /health
@@ -112,7 +112,7 @@ metadata:
   creationTimestamp: null
   name: acmeair-flight-db
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       name: acmeair-flight-db
@@ -129,7 +129,7 @@ spec:
         - name: acmeair-flight-db-2
           emptyDir: {}
       containers:
-      - image: mongo
+      - image: docker.io/library/mongo:latest
         name: acmeair-flight-db
         ports:
         - containerPort: 27017

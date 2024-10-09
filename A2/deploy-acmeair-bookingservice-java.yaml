@@ -17,14 +17,7 @@ spec:
     spec:
       containers:
       - name: acmeair-bookingservice-java
-        image: image-registry.openshift-image-registry.svc:5000/acmeair-g13/acmeair-bookingservice-java:latest
-        resources:
-          requests:
-            cpu: 500m
-            memory: 1024Mi
-          limits:
-            cpu: 500m
-            memory: 1024Mi
+        image: acmeair-bookingservice-java:latest
         ports:
           - containerPort: 9080
           - containerPort: 9443
@@ -54,6 +47,13 @@ spec:
           value: '*=info'
         - name: LOGGING_FORMAT
           value: 'simple'
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
         readinessProbe:
           httpGet:
             path: /health
@@ -135,7 +135,7 @@ spec:
         - name: acmeair-booking-db-2
           emptyDir: {}
       containers:
-      - image: mongo
+      - image: docker.io/library/mongo:latest
         name: acmeair-booking-db
         ports:
         - containerPort: 27017
