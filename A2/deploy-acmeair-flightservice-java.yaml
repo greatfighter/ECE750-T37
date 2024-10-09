@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: acmeair-flightservice
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       name: acmeair-flight-deployment
@@ -21,10 +21,10 @@ spec:
         resources:
           requests:
             cpu: 500m
-            memory: 256Mi
+            memory: 512Mi
           limits:
             cpu: 500m
-            memory: 256Mi
+            memory: 512Mi
         ports:
           - containerPort: 9080
           - containerPort: 9443
@@ -112,7 +112,7 @@ metadata:
   creationTimestamp: null
   name: acmeair-flight-db
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       name: acmeair-flight-db
