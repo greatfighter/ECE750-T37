@@ -142,7 +142,36 @@ class Analyzer:
         return pd.DataFrame(new_data)
 
 
-    def adjust_resources(self, current_status, current_config,
+    def process_data(self):
+        service_to_index = {service: idx for idx, service in enumerate(SERVICE_TO_USE)}
+        current_status = [[0] * len(self.metrics) for _ in range(len(SERVICE_TO_USE))]
+        adaptation_options = [None for _ in range(len(SERVICE_TO_USE))]
+
+        for idx, (metric_id, aggregation) in enumerate(self.metrics):
+            filename = "datasets/" + metric_id.replace('.', '_') + "_" + aggregation + "_metric.json"
+            df = self.create_dataframe(filename)
+            df_filtered = df[df['service'].isin(SERVICE_TO_USE)]
+            aggregationData = df_filtered.groupby('service')
+            avg_values = aggregationData['value'].mean()
+
+            for service, avg_value in avg_values.items():
+                if service in service_to_index:
+                    index = service_to_index[service]
+                    current_status[index][idx] = avg_value
+
+        for i in range(len(SERVICE_TO_USE)):
+            print ("##########################")
+            print(f"Service: {SERVICE_TO_USE[i]}")  # Print the current service name
+            adaptation = self.triggerAdaptation(current_status[i])
+            adaptation_options[i] = adaptation
+        return adaptation_options, current_status
+
+
+class Planner:
+    def __init__(self, analyzer):
+        self.analyzer = analyzer  # Store a reference to the Analyzer instance
+    
+    def make_adaption_option(self, current_status, current_config,
                      cpu_upper_threshold=80, cpu_lower_threshold=10, 
                      mem_upper_threshold=80, mem_lower_threshold=10, 
                      latency_threshold=100, tps_threshold=500, gc_time_threshold=30, 
@@ -214,134 +243,23 @@ class Analyzer:
         # # Adjust for high GC time: increase memory
         # if gc_time > gc_time_threshold and mem_util > mem_upper_threshold:
         #     current_config["memory"] += 256 # "increase_memory"
-
         return current_config
 
-
-    def process_data(self, current_config):
-        service_to_index = {service: idx for idx, service in enumerate(SERVICE_TO_USE)}
-        current_status = [[0] * len(self.metrics) for _ in range(len(SERVICE_TO_USE))]
+    def generate_adaptation_plan(self, plans, current_config, current_status):
+        # print(f"Length of adaptation_options: {len(adaptation_options)}")
+        # print(f"Adaptation options: {adaptation_options}")  # Debugging line
         adaptation_options = [None for _ in range(len(SERVICE_TO_USE))]
-
-        for idx, (metric_id, aggregation) in enumerate(self.metrics):
-            filename = "datasets/" + metric_id.replace('.', '_') + "_" + aggregation + "_metric.json"
-            df = self.create_dataframe(filename)
-            df_filtered = df[df['service'].isin(SERVICE_TO_USE)]
-            aggregationData = df_filtered.groupby('service')
-            avg_values = aggregationData['value'].mean()
-
-            for service, avg_value in avg_values.items():
-                if service in service_to_index:
-                    index = service_to_index[service]
-                    current_status[index][idx] = avg_value
-
-        for i in range(5):
-            print ("##########################")
-            print(f"Service: {SERVICE_TO_USE[i]}")  # Print the current service name
-            adaptation = self.triggerAdaptation(current_status[i])
+        for i in range(len(SERVICE_TO_USE)):
+            adaptation = plans[i]
             if adaptation:
-                print(f"{self.services[i]} requires adaptation")
+                print(f"{self.analyzer.services[i]} requires adaptation")
                 print("current config:", current_config[i])
-                adaptation_options[i] = self.adjust_resources(current_status[i], current_config[i])
+                adaptation_options[i] = self.make_adaption_option(current_status[i], current_config[i])
                 print("adjust config:", current_config[i])
             else:
                 print(f"No adaptation required for {self.services[i]}")
                 print("current config:", current_config[i])
-
         return adaptation_options
-
-class Planner:
-    def __init__(self, analyzer):
-        self.analyzer = analyzer  # Store a reference to the Analyzer instance
-
-    def generate_adaptation_plan(self, adaptation_options):
-        # print(f"Length of adaptation_options: {len(adaptation_options)}")
-        print(f"Adaptation options: {adaptation_options}")  # Debugging line
-
-        optimal_plans = [None for _ in range(len(adaptation_options))]
-        # print(f"Length of optimal_plans: {len(optimal_plans)}")  # Debugging line
-
-        for idx, plans in enumerate(adaptation_options):
-            print(f"Processing plans for index {idx}: {plans}")  # Debugging line
-            
-            if plans:  # Check if plans is not empty
-                option = {'utility': -float('inf'), 'plan': None}
-                
-                if isinstance(plans, list) and len(plans) == 5:  # Check if it's a list and has 5 elements
-                    # cpu, memory, latency, tps, gc_time = plans
-                    
-                    # Calculate utility using the Analyzer's method
-                    # utility = self.analyzer.calculate_utility(cpu, memory, latency, tps, gc_time, cost=0)
-                    # print(f"Calculated utility for plan {plans}: {utility}")  # Debugging line
-                    
-                    if utility > option['utility']:
-                        print(f"New optimal plan for index {idx} with utility {utility}")
-                        option = {'utility': utility, 'plan': plans}
-
-                if option['utility'] > -float('inf'):
-                    optimal_plans[idx] = option['plan']
-                    
-            print(f"Optimal plan selected for index {idx}: {optimal_plans[idx]}")  # Debugging line
-        print(optimal_plans)
-        print(option)
-        return optimal_plans
-    
-    def translate_optimal_to_adaptation_plan(self, optimal_plans):
-        adaptation_plans = {}  # Initialize an empty dictionary for adaptation plans
-        
-        for idx, plan in enumerate(optimal_plans):
-            if plan:
-                try:
-                    # Unpack the optimal plan values
-                    cpu, memory, latency, tps, gc_time = plan  # gc_time is unpacked but not used in adaptation
-
-                    # Define thresholds based on the new scale
-                    cpu_threshold = 2.0  # 2 CPU cores as threshold
-                    memory_threshold = 60  # 60 GB of memory
-                    latency_threshold = 1000000  # 1,000,000 µs (1 second)
-                    tps_threshold = 2.0  # Transactions per second threshold
-
-                    # Create the adaptation plan for this service
-                    adaptation_plan = {
-                        "cpu": cpu,
-                        "memory": memory,
-                        "replica": 1  # Default 1 pod
-                    }
-
-                    # Logic for increasing memory by 4GB if memory usage exceeds the threshold
-                    if memory > memory_threshold:
-                        adaptation_plan["memory"] = memory + 4  # Increase memory by 4GB
-                        print(f"Increasing memory for service_{idx} by 4GB")
-
-                    # Logic for increasing CPU if CPU usage exceeds the threshold
-                    if cpu > cpu_threshold:
-                        adaptation_plan["cpu"] = cpu + 0.5  # Increase CPU by 0.5 cores
-                        print(f"Increasing CPU for service_{idx} by 0.5 cores")
-
-                    # Logic for increasing the number of pods if latency exceeds the threshold
-                    if latency > latency_threshold:
-                        adaptation_plan["replica"] += 1  # Increase the number of replicas by 1
-                        print(f"Increasing pods for service_{idx} due to high latency")
-
-                    # Logic for increasing the number of pods if TPS exceeds the threshold
-                    if tps > tps_threshold:
-                        adaptation_plan["replica"] += 1  # Increase the number of replicas by 1
-                        print(f"Increasing pods for service_{idx} due to high TPS")
-
-                    # Add the adaptation plan to the dictionary with the service name as the key
-                    adaptation_plans[f"service_{idx}"] = adaptation_plan
-                
-                except IndexError as e:
-                    print(f"IndexError at service_{idx}: {e}, Plan: {plan}")
-                    adaptation_plans[f"service_{idx}"] = None  # Add None to skip this service
-                
-                except Exception as e:
-                    print(f"An unexpected error occurred at service_{idx}: {e}, Plan: {plan}")
-                    adaptation_plans[f"service_{idx}"] = None  # Fallback to None if there's an error
-            else:
-                adaptation_plans[f"service_{idx}"] = None
-
-        return adaptation_plans
 
 
 class Executor:
@@ -366,7 +284,6 @@ class Executor:
             # print(f"Command output: {res.stdout}")
             # print(f"Command error: {res.stderr}")
             if res.returncode == 0:
-            #     configurations[service_index] = plan  # Save the successful adaptation plan
                 print(f"Execution successful for {SERVICE_TO_USE[i]}:\n{res.stdout}")
             else:
                 print(f"Adaptation failed for {SERVICE_TO_USE[i]} with error:\n{res.stderr}")
@@ -402,7 +319,7 @@ def main():
     # Instantiate the Monitor, Analyzer, Planner, and Executor
     monitor = Monitor(URL, APIKEY, GUID)
     analyzer = Analyzer(core_metrics)
-    # planner = Planner(analyzer)  # Pass analyzer instance
+    planner = Planner(analyzer)  # Pass analyzer instance
     executor = Executor()
 
     current_configurations = SERVICE_CONFIG
@@ -422,10 +339,10 @@ def main():
             monitor.fetch_data_from_ibm(id, "max")
         print(f"Pulling metrics from IBM Cloud")
         # Process the data
-        adaptation_options = analyzer.process_data(current_configurations)
-        # optimal_plans = planner.generate_adaptation_plan(adaptation_options)
-        # adaptation_plans = planner.translate_optimal_to_adaptation_plan(optimal_plans)
-        executor.execute(adaptation_options)
+        adaptation_options, current_status = analyzer.process_data()
+        plans = planner.generate_adaptation_plan(adaptation_options, current_configurations, current_status)
+        executor.execute(plans)
+
         for i in range(len(SERVICE_TO_USE)):
             if adaptation_options[i] != None:
                 # If there is adaption, replace current GLOBAL store configuration
