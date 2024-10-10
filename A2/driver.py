@@ -7,7 +7,7 @@ from sdcclient import IbmAuthHelper, SdMonitorClient
 from datetime import datetime
 import subprocess
 
-SLEEP = 60
+SLEEP = 120
 SERVICE_TO_USE = [
     'acmeair-mainservice',
     'acmeair-authservice',
@@ -16,7 +16,7 @@ SERVICE_TO_USE = [
     'acmeair-bookingservice'
 ]
 
-SERVICE_CONFIG = [{"cpu": 500, "memory": 512, "replica": 1} for _ in range(len(SERVICE_TO_USE))]
+SERVICE_CONFIG = [{"cpu": 500, "memory": 256, "replica": 1} for _ in range(len(SERVICE_TO_USE))]
 
 def bytes_to_mb(bytes_value):
     mb_value = bytes_value / (1024 * 1024)
@@ -94,7 +94,7 @@ class Analyzer:
         gc_time = current_status[4]
         current_time = datetime.now().strftime('%H:%M:%S')
         print(f"Time: {current_time}, CPU: {cpu:.2f}%, Memory: {memory:.2f}%, Latency: {latency:.2f}ms, TPS: {tps:.2f}, GC Time: {gc_time:.2f}ms")
-        if cpu > 80 or memory > 80 or latency > 1e9 or gc_time > 500:
+        if cpu > 80 or memory > 80 or latency > 1e9:
             return True
         elif cpu < 10 or memory < 10:
             return True
@@ -166,7 +166,6 @@ class Analyzer:
         Returns:
         - Adjusted CPU, memory, and replica count actions
         """
-        # print (current_status)
         cpu_util = current_status[0]
         mem_util = current_status[1]
         latency = current_status[2]
@@ -175,30 +174,29 @@ class Analyzer:
 
         current_cpu = current_config["cpu"]
         current_memory = current_config["memory"]
-        current_config["memory"] += 256
         
         # # Determine whether to adjust CPU resources
-        # if cpu_util > cpu_upper_threshold:
-        #     current_config["cpu"] += 100 # "increase_cpu"
-        # elif cpu_util < cpu_lower_threshold and current_config["cpu"] > min_cpu:
-        #     current_config["cpu"] -= 100 # "decrease_cpu"
+        if cpu_util > cpu_upper_threshold:
+            current_config["cpu"] += 100 # "increase_cpu"
+        elif cpu_util < cpu_lower_threshold and current_config["cpu"] > min_cpu:
+            current_config["cpu"] -= 100 # "decrease_cpu"
         
-        # # Determine whether to adjust memory resources
-        # if mem_util > mem_upper_threshold:
-        #     current_config["memory"] += 256 # "increase_memory"
-        # elif mem_util < mem_lower_threshold and current_config["memory"] > min_memory:
-        #     current_config["memory"] -= 256 # "decrease_memory"
+        # Determine whether to adjust memory resources
+        if mem_util > mem_upper_threshold:
+            current_config["memory"] += 256 # "increase_memory"
+        elif mem_util < mem_lower_threshold and current_config["memory"] > min_memory:
+            current_config["memory"] -= 256 # "decrease_memory"
         
-        # # Determine whether to increase replicas
-        # if cpu_util > cpu_upper_threshold and mem_util > mem_upper_threshold and current_config["replica"] < max_replicas:
-        #     current_config["replica"] += 1 # "increase_replicas"
-        #     current_cpu["cpu"] = current_cpu
-        #     current_config["memory"] = current_memory
-        # # Determine whether to decrease replicas
-        # elif cpu_util < cpu_lower_threshold and mem_util < mem_lower_threshold and current_config["replica"] > min_replicas:
-        #     current_config["replica"] -= 1 # "decrease_replicas"
-        #     current_cpu["cpu"] = current_cpu
-        #     current_config["memory"] = current_memory
+        # Determine whether to increase replicas
+        if (latency > 1e9 and current_config["replica"] < max_replicas) or (cpu_util > cpu_upper_threshold and mem_util > mem_upper_threshold and current_config["replica"] < max_replicas):
+            current_config["replica"] += 1 # "increase_replicas"
+            current_config["cpu"] += 500
+            current_config["memory"] += 256
+        # Determine whether to decrease replicas
+        elif cpu_util < cpu_lower_threshold and mem_util < mem_lower_threshold and current_config["replica"] > min_replicas:
+            current_config["replica"] -= 1 # "decrease_replicas"
+            current_config["cpu"] -= 500
+            current_config["memory"] -= 256
         
         # if latency > latency_threshold:
         #     if cpu_util > cpu_upper_threshold:
@@ -221,21 +219,18 @@ class Analyzer:
 
 
     def process_data(self, current_config):
-        # print("Processing data...")  # Debugging line
         service_to_index = {service: idx for idx, service in enumerate(SERVICE_TO_USE)}
         current_status = [[0] * len(self.metrics) for _ in range(len(SERVICE_TO_USE))]
         adaptation_options = [None for _ in range(len(SERVICE_TO_USE))]
 
         for idx, (metric_id, aggregation) in enumerate(self.metrics):
             filename = "datasets/" + metric_id.replace('.', '_') + "_" + aggregation + "_metric.json"
-            # print(f"Loading data from {filename}")  # Debugging line
             df = self.create_dataframe(filename)
             df_filtered = df[df['service'].isin(SERVICE_TO_USE)]
             aggregationData = df_filtered.groupby('service')
             avg_values = aggregationData['value'].mean()
 
             for service, avg_value in avg_values.items():
-                # print(f"Service {service} has average {avg_value} for {metric_id}")  # Debugging line
                 if service in service_to_index:
                     index = service_to_index[service]
                     current_status[index][idx] = avg_value
@@ -251,8 +246,8 @@ class Analyzer:
                 print("adjust config:", current_config[i])
             else:
                 print(f"No adaptation required for {self.services[i]}")
+                print("current config:", current_config[i])
 
-        # print(f"Data processing complete: {outputs}")  # Debugging line
         return adaptation_options
 
 class Planner:
@@ -353,52 +348,18 @@ class Executor:
     def __init__(self):
         pass
 
-    # def execute(self, adaptation_plans, configurations):
-    #     for idx, adaptation_plan in enumerate(adaptation_plans):
-    #         if adaptation_plan:
-    #             print(f"Executing plan {adaptation_plan} for service {adaptation_plan['service']}")  # Debugging line
-    #             cpu = adaptation_plan["cpu"]
-    #             memory = adaptation_plan["memory"]
-    #             replica = adaptation_plan['replica']
-    #             service = adaptation_plan['service']
-    #             command = f"./config.sh cpu={cpu} memory={memory} replica={replica} service={service}"
-    #             res = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    #             if res.returncode == 0:
-    #                 configurations[idx] = adaptation_plan
-    #                 print(f"Execution successful for {service}:\n{res.stdout}")  # Debugging line
-    #             else:
-    #                 print(f"Adaptation failed for {service} with error:\n{res.stderr}")  # Debugging line
-
-    # def execute(self, adaptation_plans, configurations):
-    #     for idx, adaptation_plan in enumerate(adaptation_plans):
-    #         if adaptation_plan:
-    #             print(f"Executing plan {adaptation_plan} for service {adaptation_plan[3]}")  # Assuming 'service' is at index 3
-                
-    #             cpu = adaptation_plan[0]      # Assuming CPU is at index 0
-    #             memory = adaptation_plan[1]   # Assuming memory is at index 1
-    #             replica = adaptation_plan[2]  # Assuming replica is at index 2
-    #             service = adaptation_plan[3]  # Assuming service is at index 3
-                
-    #             command = f"./config.sh cpu={cpu} memory={memory} replica={replica} service={service}"
-    #             res = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    #             if res.returncode == 0:
-    #                 configurations[idx] = adaptation_plan
-    #                 print(f"Execution successful for {service}:\n{res.stdout}")  # Debugging line
-    #             else:
-    #                 print(f"Adaptation failed for {service} with error:\n{res.stderr}")  # Debugging line
-
     def execute(self, configurations):
         for i in range(len(SERVICE_TO_USE)):
+            if configurations[i] == None:
+                # If the service does not need adaption
+                continue
             print ("Service: ", SERVICE_TO_USE[i])
-            print ("New config: ", configurations[i])
-
+            # print ("New config: ", configurations[i])
             cpu = configurations[i]["cpu"]
             memory = configurations[i]["memory"]
             replica = configurations[i]["replica"]
             print(f"CPU: {cpu}, Memory: {memory}, Replica: {replica}")
-            command = f"config.sh cpu={cpu} memory={memory} replica={replica} service={SERVICE_TO_USE[i]}"
+            command = f"sh config.sh cpu={cpu} memory={memory} replica={replica} service={SERVICE_TO_USE[i]}"
             print(f"Command to execute: {command}")
             res = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             # Print command output and error
@@ -409,37 +370,6 @@ class Executor:
                 print(f"Execution successful for {SERVICE_TO_USE[i]}:\n{res.stdout}")
             else:
                 print(f"Adaptation failed for {SERVICE_TO_USE[i]} with error:\n{res.stderr}")
-
-
-        # for service_name, plan in adaptation_plans.items():  # Iterating over service_name and plan
-        #     service_index = int(service_name.split('_')[1]) 
-        #     print(f"Executing plan for {service_name}")
-        #     print(f"Adaptation plan for {service_name}: {plan}")
-
-        #     # Extracting parameters from the plan (inner dictionary)
-        #     cpu = plan["cpu"]
-        #     memory = plan["memory"]
-        #     replica = plan["replica"]
-
-        #     # Debugging output
-        #     print(f"CPU: {cpu}, Memory: {memory}, Replica: {replica}")
-
-        #     command = f"./config.sh cpu={cpu} memory={memory} replica={replica} service={service_name}"
-        #     print(f"Command to execute: {command}")
-
-        #     # # Execute the command
-        #     res = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        #     # # Print command output and error
-        #     # print(f"Command output: {res.stdout}")
-        #     # print(f"Command error: {res.stderr}")
-
-        #     # # Save the successful configuration, otherwise log an error
-        #     if res.returncode == 0:
-        #         configurations[service_index] = plan  # Save the successful adaptation plan
-        #         print(f"Execution successful for {service_name}:\n{res.stdout}")
-        #     else:
-        #         print(f"Adaptation failed for {service_name} with error:\n{res.stderr}")
 
         
 def main():
@@ -476,6 +406,7 @@ def main():
     executor = Executor()
 
     current_configurations = SERVICE_CONFIG
+    executor.execute(current_configurations)
 
     while True:
         # Fetch data for average metrics
@@ -495,7 +426,11 @@ def main():
         # optimal_plans = planner.generate_adaptation_plan(adaptation_options)
         # adaptation_plans = planner.translate_optimal_to_adaptation_plan(optimal_plans)
         executor.execute(adaptation_options)
-        current_configurations = adaptation_options
+        for i in range(len(SERVICE_TO_USE)):
+            if adaptation_options[i] != None:
+                # If there is adaption, replace current GLOBAL store configuration
+                current_configurations[i] = adaptation_options[i]
+
 
         time.sleep(SLEEP)  # Wait before the next cycle
 
