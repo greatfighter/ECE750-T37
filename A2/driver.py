@@ -7,7 +7,7 @@ from sdcclient import IbmAuthHelper, SdMonitorClient
 from datetime import datetime
 import subprocess
 
-SLEEP = 120
+SLEEP = 500
 SERVICE_TO_USE = [
     'acmeair-mainservice',
     'acmeair-authservice',
@@ -93,6 +93,7 @@ class Analyzer:
         tps = current_status[3]
         gc_time = current_status[4]
         current_time = datetime.now().strftime('%H:%M:%S')
+        score = self.calculate_utility(cpu, memory, latency, tps, gc_time)
         print(f"Time: {current_time}, CPU: {cpu:.2f}%, Memory: {memory:.2f}%, Latency: {latency:.2f}ms, TPS: {tps:.2f}, GC Time: {gc_time:.2f}ms")
         if cpu > 80 or memory > 80 or latency > 1e9:
             return True
@@ -100,7 +101,7 @@ class Analyzer:
             return True
         return False
 
-    def calculate_utility(self, cpu, memory, latency, tps, gc_time, cost):
+    def calculate_utility(self, cpu, memory, latency, tps, gc_time, cost = 1):
         cpu_utility = self.weight_cpu * self.utility_preference_cpu(cpu)
         memory_utility = self.weight_memory * self.utility_preference_memory(memory)
         latency_utility = self.weight_latency * self.utility_preference_latency(latency)
@@ -338,6 +339,7 @@ def main():
         for id in max_metric_ids:
             monitor.fetch_data_from_ibm(id, "max")
         print(f"Pulling metrics from IBM Cloud")
+        break
         # Process the data
         adaptation_options, current_status = analyzer.process_data()
         plans = planner.generate_adaptation_plan(adaptation_options, current_configurations, current_status)
