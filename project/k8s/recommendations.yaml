@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: recommendations
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: recommendations
     service: recommendations
@@ -16,8 +16,8 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: service-mesh-demo-recommendations
-  namespace: service-mesh-demo
+  name: group-4-recommendations
+  namespace: group-4
   labels:
     account: recommendations
 ---
@@ -25,7 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: recommendations-food
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: recommendations
     version: food
@@ -43,7 +43,7 @@ spec:
         app: recommendations
         version: food
     spec:
-      serviceAccountName: service-mesh-demo-recommendations
+      serviceAccountName: group-4-recommendations
       containers:
       - name: reviews
         image: quay.io/rhdevelopers/service-mesh-recommendations:v1.0
@@ -58,7 +58,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: recommendations-music
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: recommendations
     version: music
@@ -76,7 +76,7 @@ spec:
         app: recommendations
         version: music
     spec:
-      serviceAccountName: service-mesh-demo-recommendations
+      serviceAccountName: group-4-recommendations
       containers:
       - name: reviews
         image: quay.io/rhdevelopers/service-mesh-recommendations:v1.0

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: payments
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: payments
     service: payments
@@ -16,8 +16,8 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: service-mesh-demo-payments
-  namespace: service-mesh-demo
+  name: group-4-payments
+  namespace: group-4
   labels:
     account: payments
 ---
@@ -25,7 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payments
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: payments
 spec:
@@ -41,7 +41,7 @@ spec:
         app: payments
         version: v1
     spec:
-      serviceAccountName: service-mesh-demo-payments
+      serviceAccountName: group-4-payments
       containers:
       - name: payments
         image: quay.io/rhdevelopers/service-mesh-payments:v1.0

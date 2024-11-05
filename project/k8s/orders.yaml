@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: orders
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: orders
     service: orders
@@ -16,8 +16,8 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: service-mesh-demo-orders
-  namespace: service-mesh-demo
+  name: group-4-orders
+  namespace: group-4
   labels:
     account: orders
 ---
@@ -25,7 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: orders
-  namespace: service-mesh-demo
+  namespace: group-4
   labels:
     app: orders
 spec:
@@ -40,7 +40,7 @@ spec:
       labels:
         app: orders
     spec:
-      serviceAccountName: service-mesh-demo-orders
+      serviceAccountName: group-4-orders
       containers:
       - name: orders
         image: quay.io/rhdevelopers/service-mesh-orders:v1.0
@@ -57,7 +57,7 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: orders
-  namespace: service-mesh-demo
+  namespace: group-4
   annotations:
     openshift.io/host.generated: 'true'
 spec:
