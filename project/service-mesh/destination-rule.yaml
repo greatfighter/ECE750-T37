@@ -1,8 +1,8 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: service-mesh-demo-destination-rule
-  namespace: service-mesh-demo
+  name: group-4-destination-rule
+  namespace: group-4
 spec:
   host: recommendations
   subsets:
