@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: virtual-service-orders
+  namespace: group-4-test
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - group-4-test-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /test
+    route:
+    - destination:
+        host: orders
+        port:
+          number: 8080

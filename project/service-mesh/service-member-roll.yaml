@@ -9,3 +9,4 @@ metadata:
 spec:
   members:
     - group-4
+    - group-4-test

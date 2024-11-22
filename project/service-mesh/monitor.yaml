@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: group-4-services-monitor
+  namespace: monitoring
+  labels:
+    team: group-4
+spec:
+  selector:
+    matchLabels:
+      app: orders   # 确保标签与服务匹配
+  namespaceSelector:
+    matchNames:
+      - group-4     # 服务所在的命名空间
+  endpoints:
+    - port: "8080"
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: group-4-services-monitor-payments
+  namespace: monitoring
+  labels:
+    team: group-4
+spec:
+  selector:
+    matchLabels:
+      app: payments   # 确保标签与服务匹配
+  namespaceSelector:
+    matchNames:
+      - group-4       # 服务所在的命名空间
+  endpoints:
+    - port: "8080"
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: group-4-services-monitor-recommendations
+  namespace: monitoring
+  labels:
+    team: group-4
+spec:
+  selector:
+    matchLabels:
+      app: recommendations   # 确保标签与服务匹配
+  namespaceSelector:
+    matchNames:
+      - group-4              # 服务所在的命名空间
+  endpoints:
+    - port: "8080"
+      path: /metrics
+      interval: 15s
