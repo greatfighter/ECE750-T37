@@ -1,0 +1,29 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: virtual-service-recommendations
+  namespace: group-4
+spec:
+  hosts:
+  - recommendations
+  http:
+  - match:
+    - headers:
+        category:
+          exact: Music
+    route:
+    - destination:
+        host: recommendations
+        subset: recommendation-music
+        port:
+          number: 8080
+  - match:
+    - headers:
+        category:
+          exact: Food
+    route:
+    - destination:
+        host: recommendations
+        subset: recommendation-food
+        port:
+          number: 8080

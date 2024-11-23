@@ -1,0 +1,14 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: group-4-test-destination-rule
+  namespace: group-4-test
+spec:
+  host: recommendations
+  subsets:
+  - name: recommendation-food
+    labels:
+      version: food
+  - name: recommendation-music
+    labels:
+      version: music
