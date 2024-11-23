@@ -1,4 +1,5 @@
 from collections import deque
+from collections import defaultdict
 import numpy as np
 
 class ScenarioManager:
@@ -108,34 +109,56 @@ class ScenarioManager:
 
 # Example Usage
 if __name__ == "__main__":
-	# Initialize a deque with a maximum length of 10
-	recent_loads = deque(maxlen=10)  # Automatically removes the oldest element when new elements are added
+	# Initialize a defaultdict for recent loads for each service
+	recent_loads_dict = defaultdict(lambda: deque(maxlen=10))  # Automatically removes the oldest element when new elements are added
 
 	# Example input metrics
-	metrics_list = [
-		{"cpu_usage": 75, "memory_usage": 60, "connections": 120, "requests": 500},
-		{"cpu_usage": 78, "memory_usage": 63, "connections": 130, "requests": 550},
-		{"cpu_usage": 80, "memory_usage": 65, "connections": 140, "requests": 600},
-		{"cpu_usage": 85, "memory_usage": 68, "connections": 150, "requests": 650},
-		{"cpu_usage": 90, "memory_usage": 70, "connections": 160, "requests": 700}
-	]
+	service_data_dict = {
+		"service1": pd.DataFrame({
+			"timestamp": [1732321590, 1732321591, 1732321592],
+			"cpu_usage_avg": [75, 78, 80],
+			"memory_usage_avg": [60, 63, 65],
+			"connections": [120, 130, 140],
+			"requests": [500, 550, 600]
+		}),
+		"service2": pd.DataFrame({
+			"timestamp": [1732321590, 1732321591, 1732321592],
+			"cpu_usage_avg": [85, 90, 95],
+			"memory_usage_avg": [68, 70, 75],
+			"connections": [150, 160, 170],
+			"requests": [650, 700, 750]
+		})
+	}
 
 	# Initialize the manager
 	manager = ScenarioManager(ema_alpha=0.2, ema_threshold=5, variance_threshold=10, concurrency_threshold=100)
 
 	# Simulate metrics input over time
-	for metrics in metrics_list:
-		# Analyze the scenario
-		scenario, current_load = manager.analyze_scenario(metrics, list(recent_loads))
+	for service, df in service_data_dict.items():
+		print(f"\nProcessing data for {service}")
+		
+		# Ensure the DataFrame is sorted by timestamp
+		df = df.sort_values(by="timestamp").reset_index(drop=True)
 
-		# Add the current load to the deque
-		recent_loads.append(current_load)
+		# Iterate through rows of the DataFrame
+		for _, row in df.iterrows():
+			metrics = {
+				"cpu_usage": row["cpu_usage_avg"],
+				"memory_usage": row["memory_usage_avg"],
+				"connections": row["connections"],
+				"requests": row["requests"]
+			}
+			# Analyze the scenario
+			scenario, current_load = manager.analyze_scenario(metrics, list(recent_loads_dict[service]))
 
-		# Print results
-		print(f"Current combined load: {current_load:.2f}")
-		print(f"Recent loads: {list(recent_loads)}")
-		if scenario:
-			print(f"Detected scenarios: {', '.join(scenario)}")
-		else:
-			print("No abnormal scenarios detected")
-		print("-" * 50)
+			# Add the current load to the service's recent loads deque
+			recent_loads_dict[service].append(current_load)
+
+			# Print results
+			print(f"Timestamp: {row['timestamp']}, Current combined load: {current_load:.2f}")
+			print(f"Recent loads for {service}: {list(recent_loads_dict[service])}")
+			if scenario:
+				print(f"Detected scenarios for {service}: {', '.join(scenario)}")
+			else:
+				print(f"No abnormal scenarios detected for {service}")
+			print("-" * 50)

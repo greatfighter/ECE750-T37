@@ -96,18 +96,31 @@ class DataProcessor:
 			# print(df)
 			
 			# Filter the dataframe to only include services in SERVICE_TO_USE
-			df_filtered = df[df['service'].isin(global_var.SERVICE_TO_USE)]
+			# df_filtered = df[df['service'].isin(global_var.SERVICE_TO_USE)]
+			# df_filtered['metric_name'] = f"{metric_id}_{aggregation}"  # Add a column to track metric names
+			df_filtered = df[df['service'].isin(global_var.SERVICE_TO_USE)].copy()  # 使用 .copy() 创建副本
+			df_filtered['metric_name'] = f"{metric_id}_{aggregation}"  # 添加新列
 			grouped_data = df_filtered.groupby('service')
 			# print (df_filtered)
 			for service, service_data in grouped_data:
 				# Append current metric data to the service-specific DataFrame
-				if not service_data_dict[service].empty:
-					service_data_dict[service] = pd.concat([service_data_dict[service], service_data])
-				else:
-					service_data_dict[service] = service_data
+				service_pivot = service_data.pivot_table(
+					index='timestamp',  # Group rows by timestamp
+					columns='metric_name',  # Metrics become columns
+					values='value',  # Values for each metric
+					aggfunc='first'  # If duplicates exist, take the first
+				).reset_index()
 
-				# Sort by timestamp and reset index
-				service_data_dict[service] = service_data_dict[service].sort_values(by="timestamp").reset_index(drop=True)
+				# Merge with existing data for the service
+				if not service_data_dict[service].empty:
+					service_data_dict[service] = pd.merge(
+						service_data_dict[service],
+						service_pivot,
+						on='timestamp',
+						how='outer'
+					)
+				else:
+					service_data_dict[service] = service_pivot
 
 				# Create repository for each service
 				service_folder = os.path.join('datasets', service)
@@ -123,6 +136,12 @@ class DataProcessor:
 
 				service_data.to_csv(service_filename, index=False)
 				print(f"Data for {service} saved to {service_filename}")
+
+		for service in global_var.SERVICE_TO_USE:
+			if not service_data_dict[service].empty:
+				metric_columns = [f"{metric_id}_{aggregation}" for metric_id, aggregation in self.metrics]
+				service_data_dict[service] = service_data_dict[service][['timestamp'] + metric_columns]
+
 		return service_data_dict
 
 def main():
