@@ -1,0 +1,1 @@
+{"data": [{"t": 1732323930, "d": ["prometheus-operator", 0.195]}, {"t": 1732323930, "d": ["orders", 0.182]}, {"t": 1732323930, "d": ["payments", 0.165]}, {"t": 1732323930, "d": ["recommendations-food", 0.161]}, {"t": 1732323930, "d": ["recommendations-music", 0.157]}], "start": 1732323920, "end": 1732323930}
