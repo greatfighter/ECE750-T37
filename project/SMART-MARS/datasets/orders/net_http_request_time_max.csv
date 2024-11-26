@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,orders,1344435984.5,net.http.request.time_max
+1732403150,orders,1067963255.5,net.http.request.time_max
+1732403160,orders,381531893.5,net.http.request.time_max
+1732403170,orders,1057852216.0,net.http.request.time_max
+1732403180,orders,1083614077.0,net.http.request.time_max
+1732403190,orders,318627713.5,net.http.request.time_max

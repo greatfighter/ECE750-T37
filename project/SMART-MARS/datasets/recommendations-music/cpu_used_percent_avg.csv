@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,recommendations-music,0.03375,cpu.used.percent_avg
+1732403150,recommendations-music,0.0395,cpu.used.percent_avg
+1732403160,recommendations-music,0.037875,cpu.used.percent_avg
+1732403170,recommendations-music,0.032125,cpu.used.percent_avg
+1732403180,recommendations-music,0.038125,cpu.used.percent_avg
+1732403190,recommendations-music,0.038625,cpu.used.percent_avg

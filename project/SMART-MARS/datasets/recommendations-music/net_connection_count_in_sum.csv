@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,recommendations-music,0,net.connection.count.in_sum
+1732403150,recommendations-music,1,net.connection.count.in_sum
+1732403160,recommendations-music,1,net.connection.count.in_sum
+1732403170,recommendations-music,0,net.connection.count.in_sum
+1732403180,recommendations-music,1,net.connection.count.in_sum
+1732403190,recommendations-music,1,net.connection.count.in_sum

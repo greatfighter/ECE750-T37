@@ -101,6 +101,7 @@ class ScenarioManager:
 		scenario = []
 		if fluctuation:
 			scenario.append("Load Fluctuation")
+
 		if high_concurrency:
 			scenario.append("High Concurrency")
 
@@ -112,7 +113,7 @@ if __name__ == "__main__":
 	# Initialize a defaultdict for recent loads for each service
 	recent_loads_dict = defaultdict(lambda: deque(maxlen=10))  # Automatically removes the oldest element when new elements are added
 
-	# Example input metrics
+	# Example input metrics for testing
 	service_data_dict = {
 		"service1": pd.DataFrame({
 			"timestamp": [1732321590, 1732321591, 1732321592],

@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,orders,956.0,net.request.count.in_sum
+1732403150,orders,543.0,net.request.count.in_sum
+1732403160,orders,534.5,net.request.count.in_sum
+1732403170,orders,1050.0,net.request.count.in_sum
+1732403180,orders,584.5,net.request.count.in_sum
+1732403190,orders,700.0,net.request.count.in_sum

@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,orders,5.108,cpu.used.percent_avg
+1732403150,orders,2.479626,cpu.used.percent_avg
+1732403160,orders,3.72,cpu.used.percent_avg
+1732403170,orders,4.42975,cpu.used.percent_avg
+1732403180,orders,3.649375,cpu.used.percent_avg
+1732403190,orders,2.990375,cpu.used.percent_avg

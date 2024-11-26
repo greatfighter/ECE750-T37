@@ -1,6 +1,11 @@
 from scenario_monitor import *
 from scenario_manager import *
-import global_var
+import global_var as gv
+import time
+import logging
+import numpy as np
+from stable_baselines3 import PPO, DDPG, A2C  # Change this to the model you used
+from RL_model_training.Agent import Environment_test as Environment  # Import your environment
 
 def print_service_data(service_data_dict):
 	"""
@@ -54,11 +59,44 @@ def adapt_data_to_scenario_manager(service_data_dict):
 
 	return processed_service_data
 
-def main():
-	URL = "https://ca-tor.monitoring.cloud.ibm.com"
-	APIKEY = "E5wgqSh1yPF_s_0NSLPF94zSA3mK2fx1go3GUQqxbFde"
-	GUID = "3fed93bc-00f4-4651-8ce2-e73ba4b9a918"
+def analyze_scenario(scenario_manager):
+	for service, df in processed_service_data.items():
+		print(f"\nProcessing data for {service}")
+		
+		# Ensure the DataFrame is sorted by timestamp
+		df = df.sort_values(by="timestamp").reset_index(drop=True)
+		vote = []
 
+		# Iterate through rows of the DataFrame
+		for _, row in df.iterrows():
+			metrics = {
+				"cpu_usage": row["cpu_usage_avg"],
+				"memory_usage": row["memory_usage_avg"],
+				"connections": row["connections"],
+				"requests": row["requests"]
+			}
+			# Analyze the scenario
+			scenario, current_load = scenario_manager.analyze_scenario(metrics, list(recent_loads_dict[service]))
+
+			# Add the current load to the service's recent loads deque
+			recent_loads_dict[service].append(current_load)
+
+			# Evaluate the all timestamp across the period
+			if scenario:
+				vote.append(1)
+			else:
+				vote.append(0)
+
+		count_1 = vote.count(1)
+		count_0 = vote.count(0)
+		if count_1 > count_0:
+			print(f"Detected scenarios for {service}")
+			return True
+		else:
+			print(f"No abnormal scenarios detected for {service}")
+	return False
+
+def main():
 	# metrices: time aggregation is average
 	avg_metric_ids = [
 		"cpu.quota.used.percent",
@@ -90,12 +128,12 @@ def main():
 	]
 
 	# Variable for monitor and data manipulation
-	scenario_monitor = ScenarioMonitor(URL, APIKEY, GUID)
+	scenario_monitor = ScenarioMonitor(gv.URL, gv.APIKEY, gv.GUID)
 	data_processor = DataProcessor(core_metrics)
+	model_manager = ModelManager(gv.MODEL_PATH)
 	
 	# Variable for scenario manager
-	recent_loads_dict = defaultdict(lambda: deque(maxlen=10))  # Automatically removes the oldest element when new elements are added
-
+	recent_loads_dict = defaultdict(lambda: deque(maxlen=30))  # Automatically removes the oldest element when new elements are added
 	scenario_manager = ScenarioManager(ema_alpha=0.2, ema_threshold=5, variance_threshold=10, concurrency_threshold=100)
 
 	while True:
@@ -108,44 +146,19 @@ def main():
 
 		for id in max_metric_ids:
 			scenario_monitor.fetch_data_from_ibm(id, "max")
-		print(f"Pulling metrics from IBM Cloud")
-		service_data_dict = data_processor.process_data(global_var.CREATE_NEW_FILE)
-		# print_service_data(service_data_dict)
+		print(f"Pulling metrics from Prometheus")
+
+		service_data_dict = data_processor.process_data(gv.CREATE_NEW_FILE)
 		processed_service_data = adapt_data_to_scenario_manager(service_data_dict)
-		
-		print (processed_service_data)
+		# For DEBUG
+		# print (processed_service_data)
 
-		for service, df in processed_service_data.items():
-			print(f"\nProcessing data for {service}")
-			
-			# Ensure the DataFrame is sorted by timestamp
-			df = df.sort_values(by="timestamp").reset_index(drop=True)
-
-			# Iterate through rows of the DataFrame
-			for _, row in df.iterrows():
-				metrics = {
-					"cpu_usage": row["cpu_usage_avg"],
-					"memory_usage": row["memory_usage_avg"],
-					"connections": row["connections"],
-					"requests": row["requests"]
-				}
-				# Analyze the scenario
-				scenario, current_load = scenario_manager.analyze_scenario(metrics, list(recent_loads_dict[service]))
-
-				# Add the current load to the service's recent loads deque
-				recent_loads_dict[service].append(current_load)
-
-				# Print results
-				# print(f"Timestamp: {row['timestamp']}, Current combined load: {current_load:.2f}")
-				# print(f"Recent loads for {service}: {list(recent_loads_dict[service])}")
-				if scenario:
-					print(f"Detected scenarios for {service}: {', '.join(scenario)}")
-				else:
-					print(f"No abnormal scenarios detected for {service}")
-				# print("-" * 50)
+		detect_scenario = analyze_scenario(scenario_manager)
+		if detect_scenario:
+			pass
 
 		# # Sleep for customizing second
-		time.sleep(global_var.SLEEP)
+		time.sleep(gv.SLEEP)
 
 if __name__ == '__main__':
 	main()

@@ -6,11 +6,17 @@ metadata:
 spec:
   hosts:
   - recommendations
+  - payments
   http:
     - route:
-      - destination:
-          host: recommendations
-          subset: recommendation-food
-          port:
-            number: 8080
-        weight: 100
+        - destination:
+            host: recommendations
+            subset: recommendation-food  # recommendations 的子集
+            port:
+              number: 8080
+          weight: 20
+        - destination:
+            host: payments  # payments 没有子集，直接指向主版本
+            port:
+              number: 8080
+          weight: 80

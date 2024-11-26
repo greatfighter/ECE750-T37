@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,recommendations-food,18030034.5,net.http.request.time_max
+1732403150,recommendations-food,13145078.0,net.http.request.time_max
+1732403160,recommendations-food,15688133.0,net.http.request.time_max
+1732403170,recommendations-food,13471388.5,net.http.request.time_max
+1732403180,recommendations-food,8740462.5,net.http.request.time_max
+1732403190,recommendations-food,12729395.5,net.http.request.time_max

@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,payments,1.761001,cpu.used.percent_avg
+1732403150,payments,0.725375,cpu.used.percent_avg
+1732403160,payments,1.11025,cpu.used.percent_avg
+1732403170,payments,1.440625,cpu.used.percent_avg
+1732403180,payments,0.880125,cpu.used.percent_avg
+1732403190,payments,1.4495,cpu.used.percent_avg

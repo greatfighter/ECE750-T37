@@ -1,0 +1,7 @@
+timestamp,service,value,metric_name
+1732403140,recommendations-food,323.0,net.request.count.in_sum
+1732403150,recommendations-food,187.0,net.request.count.in_sum
+1732403160,recommendations-food,183.5,net.request.count.in_sum
+1732403170,recommendations-food,353.0,net.request.count.in_sum
+1732403180,recommendations-food,201.5,net.request.count.in_sum
+1732403190,recommendations-food,239.0,net.request.count.in_sum
