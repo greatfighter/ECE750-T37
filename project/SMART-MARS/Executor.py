@@ -42,8 +42,8 @@ class Executor:
             raise ValueError("Actions must contain exactly two numbers, and there must be exactly two routes.")
 
         # Update the weights based on the actions list
-        routes[0]["weight"] = actions[0]
-        routes[1]["weight"] = actions[1]
+        routes[0]["weight"] = actions[1]
+        routes[1]["weight"] = actions[0]
 
         print(f"Updated weights to {actions} in the virtual service configuration.")
 
