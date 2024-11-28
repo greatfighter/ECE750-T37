@@ -65,6 +65,43 @@ class ModelManager:
         """
         return self.env.reset()
 
+    def get_best_action(self, obs):
+        """
+        Iterate through all loaded models, evaluate their actions on the given observation,
+        and return the action from the best-performing model.
+
+        :param obs: The current observation from the environment.
+        :return: A tuple of (best_action, best_model_name).
+        """
+        
+        best_action = None
+        best_model_name = None
+        best_score = -np.inf  # Initialize the best score to negative infinity
+
+        for model_name, model in self.models.items():
+            try:
+                # Predict the action for the given observation
+                action, _states = model.predict(obs, deterministic=True)
+                action = int(action)
+                
+                # Here, you can evaluate the "score" for the action. 
+                # For demonstration, we'll use a placeholder "evaluate_action" function.
+                target_state = np.zeros_like(obs)
+                score = -np.sum((obs - target_state) ** 2)
+
+                print(f"Model: {model_name}, Action: {action}, Score: {score}")
+
+                # Update the best action if the current score is better
+                if score > best_score:
+                    best_score = score
+                    best_action = action
+                    best_model_name = model_name
+            except Exception as e:
+                print(f"Failed to predict using model {model_name}: {e}")
+
+        print(f"Best Model: {best_model_name}, Best Action: {best_action}, Best Score: {best_score}")
+        return best_action, best_model_name
+
 # Example usage
 if __name__ == "__main__":
     model_base_path = "RL_model_training/Agent"  # Base directory for model files

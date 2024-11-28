@@ -166,9 +166,9 @@ class ServiceMeshEnv(gym.Env):
                 action = action  # Exploitation: action provided by policy
 
             if action == 0:
-                self._adjust_weights(0.1, -0.1)  # Shift weight towards the first service
+                self._adjust_weights(0.01, -0.01)  # Shift weight towards the first service
             elif action == 1:
-                self._adjust_weights(-0.1, 0.1)  # Shift weight towards the second service
+                self._adjust_weights(-0.01, 0.01)  # Shift weight towards the second service
             elif action == 2:
                 self._equalize_traffic()
 
@@ -269,8 +269,8 @@ class ServiceMeshEnv(gym.Env):
         Adjust traffic weights between two leaf services based on action values, preventing extreme shifts.
         """
         # Apply smaller adjustments and clamp to valid range
-        self.traffic_weights[0] = min(max(self.traffic_weights[0] + adjust_a, 0.1), 0.9)
-        self.traffic_weights[1] = min(max(self.traffic_weights[1] + adjust_b, 0.1), 0.9)
+        self.traffic_weights[0] = min(max(self.traffic_weights[0] + adjust_a, 0.01), 0.99)
+        self.traffic_weights[1] = min(max(self.traffic_weights[1] + adjust_b, 0.01), 0.99)
 
         total_weight = sum(self.traffic_weights)
         if total_weight > 0:

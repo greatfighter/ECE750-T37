@@ -6,6 +6,8 @@ import logging
 import numpy as np
 from stable_baselines3 import PPO, DDPG, A2C  # Change this to the model you used
 from RL_model_training.Agent import Environment_test as Environment  # Import your environment
+import os
+import shutil
 
 def print_service_data(service_data_dict):
 	"""
@@ -96,6 +98,88 @@ def analyze_scenario(scenario_manager):
 			print(f"No abnormal scenarios detected for {service}")
 	return False
 
+def copy_files_to_target():
+    # 定义源目录和目标目录
+    source_dir = 'datasets'
+    target_dir = 'RL_model_training/Agent/datasets_test'
+
+    # 确保目标目录存在
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        print(f"Created target directory: {target_dir}")
+
+    # 定义需要复制的文件列表
+    file_list = [
+        "cpu_quota_used_percent_avg_metric.json",
+        "net_http_request_time_max_metric.json",
+        "net_request_count_in_sum_metric.json"
+    ]
+
+    # 遍历文件列表并复制
+    for file_name in file_list:
+        source_file = os.path.join(source_dir, file_name)
+        target_file = os.path.join(target_dir, file_name)
+
+        # 检查源文件是否存在
+        if os.path.exists(source_file):
+            shutil.copy(source_file, target_file)
+            print(f"Copied {source_file} to {target_file}")
+        else:
+            print(f"File not found: {source_file}")
+
+
+def train_all_models_with_best_action(manager, obs, best_action, reward, next_obs, train_steps=1000):
+    """
+    Train all models with the best action and its corresponding result.
+
+    :param manager: An instance of ModelManagerWithBestAction.
+    :param obs: Observation where the best action was taken.
+    :param best_action: The best action chosen by the best model.
+    :param reward: Reward received after taking the best action.
+    :param next_obs: The next observation resulting from the best action.
+    :param train_steps: Number of training steps for each model.
+    """
+    for model_name, model in manager.models.items():
+        print(f"Training model: {model_name} with the best action...")
+
+        # Prepare a mock replay buffer
+        replay_buffer = {
+            "obs": obs,
+            "action": best_action,
+            "reward": reward,
+            "next_obs": next_obs,
+            "done": False,  # Assuming the episode is not done
+        }
+
+        try:
+            # Attach environment to model if not already attached
+            model.set_env(manager.env)
+
+            # Use the replay buffer to train the model
+            for _ in range(train_steps):
+                # Simulate training with the best action
+                model.replay_buffer = replay_buffer  # You need to implement a compatible replay buffer structure
+                model.learn(total_timesteps=1)  # Train for one step at a time using the replay buffer
+
+            print(f"Model {model_name} trained successfully with best action.")
+        except Exception as e:
+            print(f"Error training model {model_name}: {e}")
+
+
+def get_action_from_models(manager):
+	obs, info = model_manager.reset_environment()
+
+	# Get the best action from all models
+    best_action, best_model_name = manager.get_best_action(obs)
+
+    # Simulate the environment step using the best action
+    next_obs, reward, done, info = manager.env.step(best_action)
+
+    # Train all models with the best action result
+    train_all_models_with_best_action(manager, obs, best_action, reward, next_obs, train_steps=10)
+    return best_action
+	
+
 def main():
 	# metrices: time aggregation is average
 	avg_metric_ids = [
@@ -131,6 +215,7 @@ def main():
 	scenario_monitor = ScenarioMonitor(gv.URL, gv.APIKEY, gv.GUID)
 	data_processor = DataProcessor(core_metrics)
 	model_manager = ModelManager(gv.MODEL_PATH)
+    executor = Executor(gv.JSON_FILE)
 	
 	# Variable for scenario manager
 	recent_loads_dict = defaultdict(lambda: deque(maxlen=30))  # Automatically removes the oldest element when new elements are added
@@ -154,8 +239,13 @@ def main():
 		# print (processed_service_data)
 
 		detect_scenario = analyze_scenario(scenario_manager)
+		detect_scenario = True
 		if detect_scenario:
-			pass
+			copy_files_to_target()
+			action = get_action_from_models(model_manager)
+			print ("Action is", action)
+			executor.update_weights(actions)
+			executor.save_and_apply()
 
 		# # Sleep for customizing second
 		time.sleep(gv.SLEEP)

@@ -11,3 +11,4 @@ SERVICE_TO_USE = [
     'recommendations-food'
 ]
 CREATE_NEW_FILE = True
+JSON_FILE = "../service-mesh/virtual-service-food.json"
