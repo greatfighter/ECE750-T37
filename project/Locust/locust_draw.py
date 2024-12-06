@@ -1,9 +1,16 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Set global font size for all plots
+plt.rc('font', size=16)  # Set default font size
+plt.rc('axes', titlesize=18)  # Set title font size
+plt.rc('axes', labelsize=16)  # Set axis label font size
+plt.rc('xtick', labelsize=14)  # Set x-tick label font size
+plt.rc('ytick', labelsize=14)  # Set y-tick label font size
+plt.rc('legend', fontsize=14)  # Set legend font size
+
 # Load the data from the CSV file
 file_path = "sinusoidal_test_results_stats_history.csv"  # Replace with your actual file path
-# file_path = "random_test_results_stats_history.csv"
 data = pd.read_csv(file_path)
 
 # Convert the Timestamp to readable format if needed
